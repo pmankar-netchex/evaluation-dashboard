@@ -1,5 +1,9 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { Database } from '@/lib/supabase/database.types';
+
+type Evaluation = Database['public']['Tables']['evaluations']['Row'];
+type Transcript = Database['public']['Tables']['transcripts']['Row'];
 
 export async function GET() {
   try {
@@ -16,10 +20,11 @@ export async function GET() {
     }
 
     // Get all evaluated transcript IDs for this user
-    const { data: evaluatedTranscripts, error: evalError } = await supabase
-      .from('evaluations')
+    // Type assertion needed due to Supabase type inference limitations
+    const { data: evaluatedTranscripts, error: evalError } = await (supabase
+      .from('evaluations') as any)
       .select('transcript_id')
-      .eq('evaluator_id', user.id);
+      .eq('evaluator_id', user.id) as { data: Pick<Evaluation, 'transcript_id'>[] | null; error: any };
 
     if (evalError) {
       console.error('Error fetching evaluated transcripts:', evalError);
@@ -37,10 +42,11 @@ export async function GET() {
     
     if (evaluatedIds.length === 0) {
       // No evaluations yet, get any transcript
-      const { data: transcripts, error } = await supabase
-        .from('transcripts')
+      // Type assertion needed due to Supabase type inference limitations
+      const { data: transcripts, error } = await (supabase
+        .from('transcripts') as any)
         .select('*')
-        .limit(1);
+        .limit(1) as { data: Transcript[] | null; error: any };
       
       if (error) {
         throw error;
@@ -49,9 +55,10 @@ export async function GET() {
     } else {
       // Get transcripts that are not in the evaluated list
       // Use a workaround: get all and filter, or use a better query
-      const { data: allTranscripts, error } = await supabase
-        .from('transcripts')
-        .select('*');
+      // Type assertion needed due to Supabase type inference limitations
+      const { data: allTranscripts, error } = await (supabase
+        .from('transcripts') as any)
+        .select('*') as { data: Transcript[] | null; error: any };
       
       if (error) {
         throw error;

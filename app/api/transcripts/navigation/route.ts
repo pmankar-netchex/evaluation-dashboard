@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { Database } from '@/lib/supabase/database.types';
+
+type Evaluation = Database['public']['Tables']['evaluations']['Row'];
+type Transcript = Database['public']['Tables']['transcripts']['Row'];
 
 export async function GET(request: NextRequest) {
   try {
@@ -19,10 +23,11 @@ export async function GET(request: NextRequest) {
     }
 
     // Get all transcripts ordered by case number
-    const { data: allTranscripts, error: transcriptsError } = await supabase
-      .from('transcripts')
+    // Type assertion needed due to Supabase type inference limitations
+    const { data: allTranscripts, error: transcriptsError } = await (supabase
+      .from('transcripts') as any)
       .select('id, case_number, created_at')
-      .order('case_number', { ascending: true });
+      .order('case_number', { ascending: true }) as { data: Pick<Transcript, 'id' | 'case_number' | 'created_at'>[] | null; error: any };
 
     if (transcriptsError) {
       throw transcriptsError;
@@ -36,10 +41,11 @@ export async function GET(request: NextRequest) {
     }
 
     // Get evaluated transcript IDs for this user
-    const { data: evaluatedTranscripts, error: evalError } = await supabase
-      .from('evaluations')
+    // Type assertion needed due to Supabase type inference limitations
+    const { data: evaluatedTranscripts, error: evalError } = await (supabase
+      .from('evaluations') as any)
       .select('transcript_id')
-      .eq('evaluator_id', user.id);
+      .eq('evaluator_id', user.id) as { data: Pick<Evaluation, 'transcript_id'>[] | null; error: any };
 
     if (evalError) {
       console.error('Error fetching evaluated transcripts:', evalError);
@@ -95,11 +101,12 @@ export async function GET(request: NextRequest) {
     }
 
     // Get full transcript data
-    const { data: fullTranscript, error: fetchError } = await supabase
-      .from('transcripts')
+    // Type assertion needed due to Supabase type inference limitations
+    const { data: fullTranscript, error: fetchError } = await (supabase
+      .from('transcripts') as any)
       .select('*')
       .eq('id', targetTranscript.id)
-      .single();
+      .single() as { data: Transcript | null; error: any };
 
     if (fetchError) {
       throw fetchError;

@@ -7,6 +7,9 @@ import {
 } from '@/lib/salesforce/conversation';
 import { SierraClient } from '@/lib/sierra/client';
 import { replayToSierra } from '@/lib/sierra/replay';
+import { Database } from '@/lib/supabase/database.types';
+
+type Transcript = Database['public']['Tables']['transcripts']['Row'];
 
 export async function GET(
   request: NextRequest,
@@ -17,11 +20,12 @@ export async function GET(
     const supabase = await createServiceClient();
 
     // Check if transcript exists in database
-    const { data: existingTranscript, error: fetchError } = await supabase
-      .from('transcripts')
+    // Type assertion needed due to Supabase type inference limitations
+    const { data: existingTranscript, error: fetchError } = await (supabase
+      .from('transcripts') as any)
       .select('*')
       .eq('case_number', caseNumber)
-      .single();
+      .single() as { data: Transcript | null; error: any };
 
     if (existingTranscript && !fetchError) {
       return NextResponse.json(existingTranscript);
@@ -76,8 +80,9 @@ export async function GET(
     );
 
     // Save to database with empty Sierra transcript (will be generated later)
-    const { data: savedTranscript, error: saveError } = await supabase
-      .from('transcripts')
+    // Type assertion needed due to Supabase type inference limitations
+    const { data: savedTranscript, error: saveError } = await (supabase
+      .from('transcripts') as any)
       .insert({
         case_number: caseNumber,
         agentforce_transcript: agentforceEntries,
@@ -115,22 +120,23 @@ export async function POST(
     const supabase = await createServiceClient();
 
     // Get existing transcript - try both with and without leading zeros
-    let { data: existingTranscript, error: fetchError } = await supabase
-      .from('transcripts')
+    // Type assertion needed due to Supabase type inference limitations
+    let { data: existingTranscript, error: fetchError } = await (supabase
+      .from('transcripts') as any)
       .select('*')
       .eq('case_number', caseNumber)
-      .maybeSingle();
+      .maybeSingle() as { data: Transcript | null; error: any };
 
     // If not found, try without leading zeros (in case of format mismatch)
     if (!existingTranscript && !fetchError && caseNumber) {
       const caseWithoutZeros = caseNumber.replace(/^0+/, '');
       if (caseWithoutZeros !== caseNumber) {
         console.log(`Trying case number without leading zeros: ${caseWithoutZeros}`);
-        const result = await supabase
-          .from('transcripts')
+        const result = await (supabase
+          .from('transcripts') as any)
           .select('*')
           .eq('case_number', caseWithoutZeros)
-          .maybeSingle();
+          .maybeSingle() as { data: Transcript | null; error: any };
         existingTranscript = result.data;
         fetchError = result.error;
       }
@@ -212,8 +218,9 @@ export async function POST(
     }
 
     // Update database with Sierra transcript
-    const { data: updatedTranscript, error: updateError } = await supabase
-      .from('transcripts')
+    // Type assertion needed due to Supabase type inference limitations
+    const { data: updatedTranscript, error: updateError } = await (supabase
+      .from('transcripts') as any)
       .update({
         sierra_transcript: sierraEntries,
         sierra_version: process.env.SIERRA_VERSION || 'v2.1.0',

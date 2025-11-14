@@ -83,7 +83,9 @@ export default function DashboardPage() {
       const transcript: Transcript = await response.json();
       setCurrentTranscript(transcript);
       // Update navigation state after loading
-      await updateNavigationState(transcript.id);
+      if (transcript.id) {
+        await updateNavigationState(transcript.id);
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to load transcript');
       console.error('Error loading transcript:', err);

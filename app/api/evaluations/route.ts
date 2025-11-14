@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { z } from 'zod';
+import { Database } from '@/lib/supabase/database.types';
 
 const evaluationSchema = z.object({
   transcript_id: z.string().uuid(),
@@ -45,17 +46,20 @@ export async function POST(request: NextRequest) {
     const validatedData = evaluationSchema.parse(body);
 
     // Insert evaluation
-    const { data: evaluation, error } = await supabase
-      .from('evaluations')
-      .insert({
-        transcript_id: validatedData.transcript_id,
-        evaluator_id: user.id,
-        evaluator_email: user.email,
-        winner: validatedData.winner,
-        scores: validatedData.scores,
-        notes: validatedData.notes || null,
-        time_spent_seconds: validatedData.time_spent_seconds || null,
-      })
+    const insertData: Database['public']['Tables']['evaluations']['Insert'] = {
+      transcript_id: validatedData.transcript_id,
+      evaluator_id: user.id,
+      evaluator_email: user.email,
+      winner: validatedData.winner,
+      scores: validatedData.scores as Database['public']['Tables']['evaluations']['Insert']['scores'],
+      notes: validatedData.notes || null,
+      time_spent_seconds: validatedData.time_spent_seconds || null,
+    };
+
+    // Type assertion needed due to Supabase type inference limitations
+    const { data: evaluation, error } = await (supabase
+      .from('evaluations') as any)
+      .insert(insertData)
       .select()
       .single();
 
@@ -71,7 +75,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Validation error', details: error.errors },
+        { error: 'Validation error', details: error.issues },
         { status: 400 }
       );
     }

@@ -253,7 +253,7 @@ export class SierraClient {
       console.log(`Combined ${messageTexts.length} message fragments into: ${combinedMessage.substring(0, 100)}...`);
       
       // Update token if Sierra returned a new one
-      if (updatedToken) {
+      if (updatedToken && typeof updatedToken === 'string') {
         this.apiToken = updatedToken;
         console.log('Updated conversation token for maintaining state');
       }
@@ -280,7 +280,7 @@ export class SierraClient {
       // Check for token in single JSON response
       if (singleJson.token && typeof singleJson.token === 'string') {
         updatedToken = singleJson.token;
-        this.apiToken = updatedToken;
+        this.apiToken = singleJson.token;
       }
       
       // Check for state in single JSON response
