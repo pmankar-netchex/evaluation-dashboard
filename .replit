@@ -10,3 +10,6 @@ run = ["sh", "-c", "npm run build && npm run start"]
 [env]
 NODE_ENV = "development"
 
+[agent]
+expertMode = true
+
