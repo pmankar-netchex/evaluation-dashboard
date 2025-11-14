@@ -1,0 +1,12 @@
+run = "npm run dev"
+entrypoint = "app/page.tsx"
+
+[nix]
+channel = "stable-23_05"
+
+[deployment]
+run = ["sh", "-c", "npm run build && npm run start"]
+
+[env]
+NODE_ENV = "development"
+

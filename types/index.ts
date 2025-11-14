@@ -1,0 +1,76 @@
+// Transcript types
+export interface Message {
+  role: 'user' | 'agent' | 'bot' | 'system';
+  content: string;
+  timestamp?: number;
+}
+
+export interface TranscriptEntry {
+  identifier: string;
+  messageText: string;
+  clientTimestamp: number;
+  serverReceivedTimestamp: number;
+  sender: {
+    role: string;
+    appType?: string;
+    subject?: string;
+  };
+  type?: string;
+  clientDuration?: number;
+  relatedRecords?: string[];
+}
+
+export interface Transcript {
+  id?: string;
+  case_number: string;
+  agentforce_transcript: TranscriptEntry[];
+  sierra_transcript: TranscriptEntry[];
+  sierra_version?: string;
+  test_batch_id?: string;
+  metadata?: Record<string, any>;
+  created_at?: string;
+  updated_at?: string;
+}
+
+// Evaluation types
+export type Winner = 'sierra' | 'agentforce' | 'tie' | 'both_poor';
+
+export interface EvaluationScores {
+  resolution: {
+    af: number;
+    sierra: number;
+  };
+  empathy: {
+    af: number;
+    sierra: number;
+  };
+  efficiency: {
+    af: number;
+    sierra: number;
+  };
+  accuracy: {
+    af: number;
+    sierra: number;
+  };
+}
+
+export interface Evaluation {
+  id?: string;
+  transcript_id: string;
+  evaluator_id: string;
+  evaluator_email?: string;
+  winner: Winner;
+  scores: EvaluationScores;
+  notes?: string;
+  evaluation_timestamp?: string;
+  time_spent_seconds?: number;
+  created_at?: string;
+}
+
+// User type from Supabase auth
+export interface User {
+  id: string;
+  email?: string;
+  user_metadata?: Record<string, any>;
+}
+
