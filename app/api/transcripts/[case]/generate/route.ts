@@ -5,7 +5,6 @@ import { replayToSierra, ProgressCallback } from '@/lib/sierra/replay';
 import { Database } from '@/lib/supabase/database.types';
 
 type Transcript = Database['public']['Tables']['transcripts']['Row'];
-type TranscriptUpdate = Database['public']['Tables']['transcripts']['Update'];
 
 // Ensure this route uses Node.js runtime (not Edge) for streaming support
 export const runtime = 'nodejs';
@@ -49,9 +48,11 @@ export async function POST(
           }
           const message = `data: ${JSON.stringify(data)}\n\n`;
           controller.enqueue(encoder.encode(message));
-        } catch (err: any) {
+        } catch (err: unknown) {
           // If error is due to closed controller, mark as closed
-          if (err?.code === 'ERR_INVALID_STATE' || err?.message?.includes('closed')) {
+          const errorCode = (err as { code?: string })?.code;
+          const errorMessage = err instanceof Error ? err.message : String(err);
+          if (errorCode === 'ERR_INVALID_STATE' || errorMessage.includes('closed')) {
             isClosed = true;
           }
           console.error('Error sending event:', err);
@@ -71,11 +72,13 @@ export async function POST(
             // Already closed or errored
             isClosed = true;
           }
-        } catch (err: any) {
+        } catch (err: unknown) {
           // If we get an error, the stream is likely already closed
           isClosed = true;
           // Only log if it's not the expected "already closed" error
-          if (err?.code !== 'ERR_INVALID_STATE' && !err?.message?.includes('closed')) {
+          const errorCode = (err as { code?: string })?.code;
+          const errorMessage = err instanceof Error ? err.message : String(err);
+          if (errorCode !== 'ERR_INVALID_STATE' && !errorMessage.includes('closed')) {
             console.error('Error closing stream:', err);
           }
         }
@@ -92,6 +95,7 @@ export async function POST(
           .from('transcripts')
           .select('*')
           .eq('case_number', caseNumber)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           .maybeSingle() as { data: Transcript | null; error: any };
 
         // Fallback for case number format
@@ -102,7 +106,8 @@ export async function POST(
               .from('transcripts')
               .select('*')
               .eq('case_number', caseWithoutZeros)
-              .maybeSingle() as { data: Transcript | null; error: any };
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .maybeSingle() as { data: Transcript | null; error: any };
             existingTranscript = result.data;
             fetchError = result.error;
           }
@@ -235,13 +240,14 @@ export async function POST(
         });
 
         closeStream();
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('Error in Sierra generation stream:', error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
         try {
           sendEvent({
             type: 'error',
             message: 'Failed to generate Sierra transcript',
-            details: error.message || error.toString(),
+            details: errorMessage,
           });
         } catch (sendError) {
           console.error('Error sending error event:', sendError);
@@ -259,13 +265,14 @@ export async function POST(
         'X-Accel-Buffering': 'no', // Disable buffering for nginx
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error setting up Sierra generation stream:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
     return new Response(
       JSON.stringify({
         type: 'error',
         message: 'Failed to initialize stream',
-        details: error.message || error.toString(),
+        details: errorMessage,
       }),
       {
         status: 500,

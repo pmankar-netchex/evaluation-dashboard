@@ -101,10 +101,8 @@ export async function getConversationEntries(
   let entriesUrl = `${instanceUrl}/services/data/${apiVersion}/connect/conversation/${conversationIdentifier}/entries`;
 
   const allEntries: ConversationEntry[] = [];
-  let pageCount = 0;
 
   while (entriesUrl) {
-    pageCount++;
     const response = await session.makeRequest('GET', entriesUrl, {
       headers: {
         'Content-Type': 'application/json',

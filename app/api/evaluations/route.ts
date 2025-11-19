@@ -2,55 +2,40 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { z } from 'zod';
 import { Database } from '@/lib/supabase/database.types';
-
-const evaluationSchema = z.object({
-  transcript_id: z.string().uuid(),
-  winner: z.enum(['sierra', 'agentforce', 'tie', 'both_poor']),
-  scores: z.object({
-    resolution: z.object({
-      af: z.number().min(1).max(5),
-      sierra: z.number().min(1).max(5),
-    }),
-    empathy: z.object({
-      af: z.number().min(1).max(5),
-      sierra: z.number().min(1).max(5),
-    }),
-    efficiency: z.object({
-      af: z.number().min(1).max(5),
-      sierra: z.number().min(1).max(5),
-    }),
-    accuracy: z.object({
-      af: z.number().min(1).max(5),
-      sierra: z.number().min(1).max(5),
-    }),
-  }),
-  notes: z.string().optional(),
-  time_spent_seconds: z.number().optional(),
-});
+import { handleApiError, SafeApiError, SafeErrors } from '@/lib/error-handler';
+import { logAudit, AuditActions, extractRequestInfo } from '@/lib/audit-logger';
+import { evaluationSchema } from '@/lib/schemas/validation';
 
 export async function POST(request: NextRequest) {
+  const requestInfo = extractRequestInfo(request);
+  let user: any = null;
+  
   try {
     const supabase = await createClient();
 
     // Get current user
     const {
-      data: { user },
+      data: { user: authUser },
       error: authError,
     } = await supabase.auth.getUser();
 
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (authError || !authUser) {
+      throw SafeErrors.Unauthorized;
     }
+    
+    user = authUser;
 
     const body = await request.json();
     const validatedData = evaluationSchema.parse(body);
 
     // Insert evaluation
     const insertData: Database['public']['Tables']['evaluations']['Insert'] = {
-      transcript_id: validatedData.transcript_id,
+      transcript_id: validatedData.transcript_id || null,
+      chat_session_id: validatedData.chat_session_id || null,
+      evaluation_type: validatedData.evaluation_type,
       evaluator_id: user.id,
       evaluator_email: user.email,
-      winner: validatedData.winner,
+      winner: validatedData.winner as any || null, // Cast needed for nullable winner in chat evaluations
       scores: validatedData.scores as Database['public']['Tables']['evaluations']['Insert']['scores'],
       notes: validatedData.notes || null,
       time_spent_seconds: validatedData.time_spent_seconds || null,
@@ -64,52 +49,90 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error('Error saving evaluation:', error);
-      return NextResponse.json(
-        { error: 'Failed to save evaluation', details: error.message },
-        { status: 500 }
+      throw new SafeApiError(
+        'Failed to save evaluation',
+        500,
+        'DATABASE_ERROR',
+        error
       );
     }
 
+    // Log successful creation
+    await logAudit({
+      userId: user.id,
+      action: AuditActions.CREATE_EVALUATION,
+      resourceType: 'evaluation',
+      resourceId: evaluation.id,
+      ...requestInfo,
+      statusCode: 201,
+      metadata: {
+        evaluationType: validatedData.evaluation_type,
+        transcriptId: validatedData.transcript_id,
+        chatSessionId: validatedData.chat_session_id,
+      },
+    });
+
     return NextResponse.json(evaluation, { status: 201 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Validation error', details: error.issues },
+        { 
+          error: 'Validation error',
+          details: error.issues.map(issue => ({
+            path: issue.path.join('.'),
+            message: issue.message,
+          })),
+        },
         { status: 400 }
       );
     }
 
-    console.error('Error submitting evaluation:', error);
-    return NextResponse.json(
-      { error: 'Failed to submit evaluation', details: error.message },
-      { status: 500 }
-    );
+    // Log failed attempt
+    const statusCode = error instanceof SafeApiError ? error.statusCode : 500;
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    
+    await logAudit({
+      userId: user?.id,
+      action: AuditActions.CREATE_EVALUATION,
+      resourceType: 'evaluation',
+      ...requestInfo,
+      statusCode,
+      metadata: {
+        error: errorMessage,
+      },
+    });
+
+    return handleApiError(error, 'POST /api/evaluations');
   }
 }
 
 export async function GET(request: NextRequest) {
+  const requestInfo = extractRequestInfo(request);
+  let user: any = null;
+  
   try {
     const supabase = await createClient();
 
     // Get current user
     const {
-      data: { user },
+      data: { user: authUser },
       error: authError,
     } = await supabase.auth.getUser();
 
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (authError || !authUser) {
+      throw SafeErrors.Unauthorized;
     }
+    
+    user = authUser;
 
     const { searchParams } = new URL(request.url);
-    const evaluatorId = searchParams.get('evaluator_id');
     const transcriptId = searchParams.get('transcript_id');
+    // SECURITY FIX: Removed evaluator_id parameter - users can only view their own evaluations
 
     let query = supabase
       .from('evaluations')
-      .select('*, transcripts(*)')
-      .eq('evaluator_id', evaluatorId || user.id);
+      .select('*, transcripts(*), chat_sessions(*)')
+      .eq('evaluator_id', user.id); // Always use current user
 
     if (transcriptId) {
       query = query.eq('transcript_id', transcriptId);
@@ -121,20 +144,30 @@ export async function GET(request: NextRequest) {
     );
 
     if (error) {
-      console.error('Error fetching evaluations:', error);
-      return NextResponse.json(
-        { error: 'Failed to fetch evaluations', details: error.message },
-        { status: 500 }
+      throw new SafeApiError(
+        'Failed to fetch evaluations',
+        500,
+        'DATABASE_ERROR',
+        error
       );
     }
 
+    // Log access
+    await logAudit({
+      userId: user.id,
+      action: AuditActions.LIST_EVALUATIONS,
+      resourceType: 'evaluation',
+      ...requestInfo,
+      statusCode: 200,
+      metadata: {
+        count: evaluations?.length || 0,
+        transcriptId,
+      },
+    });
+
     return NextResponse.json(evaluations);
-  } catch (error: any) {
-    console.error('Error fetching evaluations:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch evaluations', details: error.message },
-      { status: 500 }
-    );
+  } catch (error: unknown) {
+    return handleApiError(error, 'GET /api/evaluations');
   }
 }
 

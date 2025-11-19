@@ -71,7 +71,7 @@ export async function replayToSierra(
     status: 'processing',
   });
 
-  let conversationStartTime = sortedMessages[0]?.timestamp || Date.now();
+  const conversationStartTime = sortedMessages[0]?.timestamp || Date.now();
 
   console.log(`Starting replay loop with ${sortedMessages.length} messages`);
 

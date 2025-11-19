@@ -15,7 +15,6 @@ interface TranscriptViewerProps {
 export function TranscriptViewer({
   title,
   transcript,
-  highlightDifferences = false,
   filterBotType,
 }: TranscriptViewerProps) {
   const sortedTranscript = useMemo(() => {

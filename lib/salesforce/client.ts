@@ -1,10 +1,5 @@
 import {
   SalesforceAuthResponse,
-  SalesforceQueryResponse,
-  SalesforceCase,
-  SalesforceMessagingSession,
-  SalesforceConversation,
-  ConversationEntriesResponse,
 } from '@/types/salesforce';
 
 export class SalesforceSession {

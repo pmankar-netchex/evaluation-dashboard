@@ -74,3 +74,43 @@ export interface User {
   user_metadata?: Record<string, any>;
 }
 
+// Chat Session types
+export interface ChatSession {
+  id: string;
+  user_id: string;
+  started_at: string;
+  ended_at?: string;
+  session_status: 'active' | 'ended';
+  created_at: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  session_id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: string;
+  created_at: string;
+}
+
+// Simplified evaluation scores for single bot (Sierra only)
+export interface SimplifiedEvaluationScores {
+  resolution: number;
+  empathy: number;
+  efficiency: number;
+  accuracy: number;
+}
+
+// Chat evaluation type
+export interface ChatEvaluation {
+  id?: string;
+  chat_session_id: string;
+  evaluator_id: string;
+  evaluator_email?: string;
+  scores: SimplifiedEvaluationScores;
+  notes?: string;
+  evaluation_type: 'custom_chat';
+  evaluation_timestamp?: string;
+  created_at?: string;
+}
+

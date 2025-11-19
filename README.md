@@ -45,26 +45,20 @@ Follow the instructions in [SUPABASE_SETUP.md](./SUPABASE_SETUP.md) to:
 
 ### 3. Configure Environment Variables
 
-Create a `.env.local` file in the root directory:
+Copy the example environment file and fill in your values:
 
-```env
-# Supabase Configuration
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
-
-# Salesforce Configuration
-SALESFORCE_CLIENT_ID=your_salesforce_client_id
-SALESFORCE_CLIENT_SECRET=your_salesforce_client_secret
-SALESFORCE_OAUTH_URL=https://login.salesforce.com/services/oauth2/token
-SALESFORCE_API_VERSION=v65.0
-
-# Sierra API Configuration
-SIERRA_API_KEY=your_sierra_api_key
-SIERRA_API_TOKEN=your_sierra_api_token
-SIERRA_API_URL=https://api.sierra.chat
-SIERRA_VERSION=v2.1.0
+```bash
+cp .env.example .env.local
 ```
+
+Then edit `.env.local` with your actual credentials. See `.env.example` for all required variables and descriptions.
+
+**Required Variables:**
+- Supabase: URL, anon key, and service role key
+- Salesforce: Client ID, client secret, OAuth URL
+- Sierra: API key, API token, API URL
+
+**Important:** Never commit `.env.local` to version control. It's already in `.gitignore`.
 
 ### 4. Run Development Server
 
@@ -148,91 +142,21 @@ evaluation-dashboard/
 
 ## Deployment
 
-### Vercel Deployment (Recommended)
-
-**Option 1: Deploy via Web Interface**
-
-1. Go to [vercel.com](https://vercel.com) and sign in with GitHub
-2. Click "Add New Project"
-3. Import your GitHub repository
-4. Configure your project:
-   - **Framework Preset**: Next.js (auto-detected)
-   - **Root Directory**: `./` (leave as default)
-   - **Build Command**: `npm run build` (auto-detected)
-   - **Output Directory**: `.next` (auto-detected)
-
-5. **Add Environment Variables** (click "Environment Variables"):
-   ```
-   NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-   SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
-   SALESFORCE_CLIENT_ID=your_salesforce_client_id
-   SALESFORCE_CLIENT_SECRET=your_salesforce_client_secret
-   SALESFORCE_OAUTH_URL=https://login.salesforce.com/services/oauth2/token
-   SALESFORCE_API_VERSION=v65.0
-   SIERRA_API_KEY=your_sierra_api_key
-   SIERRA_API_TOKEN=your_sierra_api_token
-   SIERRA_API_URL=https://api.sierra.chat
-   SIERRA_VERSION=v2.1.0
-   ```
-
-6. Click **Deploy**
-7. Once deployed, update your Supabase Auth settings:
-   - Go to Supabase Dashboard → Authentication → URL Configuration
-   - Add your Vercel URL to "Site URL" and "Redirect URLs"
-
-**Option 2: Deploy via CLI**
-
-```bash
-# Install Vercel CLI
-npm i -g vercel
-
-# Login to Vercel
-vercel login
-
-# Deploy (follow prompts)
-vercel
-
-# Add environment variables
-vercel env add NEXT_PUBLIC_SUPABASE_URL
-vercel env add NEXT_PUBLIC_SUPABASE_ANON_KEY
-vercel env add SUPABASE_SERVICE_ROLE_KEY
-vercel env add SALESFORCE_CLIENT_ID
-vercel env add SALESFORCE_CLIENT_SECRET
-vercel env add SALESFORCE_OAUTH_URL
-vercel env add SALESFORCE_API_VERSION
-vercel env add SIERRA_API_KEY
-vercel env add SIERRA_API_TOKEN
-vercel env add SIERRA_API_URL
-vercel env add SIERRA_VERSION
-
-# Deploy to production
-vercel --prod
-```
-
-**Automatic Deployments:**
-- Every push to `main` branch automatically deploys to production
-- Pull requests create preview deployments
-
 ### Replit Deployment
 
-1. Import the project into Replit
-2. Set environment variables in Replit Secrets
-3. Run the migration script in Supabase SQL editor
-4. Click "Run" to start the application
+For detailed instructions on deploying to Replit, see [REPLIT_DEPLOYMENT.md](./REPLIT_DEPLOYMENT.md).
 
-The `.replit` and `replit.nix` files are configured for Replit deployment.
+**Quick Steps:**
+1. Import project to Replit
+2. Add all environment variables as Replit Secrets (see `.env.example` for list)
+3. Run database migrations in Supabase
+4. Update Supabase Auth URLs with your Replit URL
+5. Click "Run"
 
-### Other Platforms
-
-This application can be deployed to:
-- Netlify
-- Railway
-- DigitalOcean App Platform
-- AWS Amplify
-- Any Node.js hosting platform
-
-Make sure to set all environment variables in your hosting platform's configuration.
+**Environment Variables:**
+- Use Replit Secrets (🔒 icon) for all sensitive data
+- Never commit `.env` files
+- See `.env.example` for complete list of required variables
 
 ## Development
 

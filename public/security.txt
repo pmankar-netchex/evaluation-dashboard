@@ -1,0 +1,96 @@
+# Security Policy
+
+## Reporting a Vulnerability
+
+If you discover a security vulnerability in this application, please report it responsibly.
+
+**Please DO NOT:**
+- Open a public GitHub issue
+- Disclose the vulnerability publicly before we've had a chance to fix it
+
+**Please DO:**
+1. Email security details to: [YOUR-SECURITY-EMAIL@example.com]
+2. Include the following information:
+   - Description of the vulnerability
+   - Steps to reproduce
+   - Potential impact
+   - Suggested fix (if you have one)
+
+**Response Time:**
+- We will acknowledge receipt within 24-48 hours
+- We will provide a detailed response within 7 days
+- We will work with you to understand and fix the issue
+
+## Security Measures
+
+This application implements:
+- Authentication via Supabase (OAuth 2.0)
+- Row Level Security (RLS) on database
+- Input validation with Zod
+- HTTPS encryption in transit
+- Regular dependency updates
+- Security headers (CSP, HSTS, X-Frame-Options)
+- Rate limiting on API endpoints
+- CSRF protection
+- Audit logging
+
+## Scope
+
+**In Scope:**
+- Authentication bypass
+- Authorization flaws
+- SQL injection
+- XSS (Cross-Site Scripting)
+- CSRF (Cross-Site Request Forgery)
+- Sensitive data exposure
+- API abuse
+- Security misconfiguration
+
+**Out of Scope:**
+- Social engineering
+- Physical attacks
+- DDoS attacks (rate limiting in place)
+- Spam
+- Issues in third-party dependencies (please report to the respective maintainers)
+
+## Vulnerability Disclosure Policy
+
+We follow responsible disclosure principles:
+1. You report the vulnerability privately
+2. We acknowledge and investigate
+3. We develop and test a fix
+4. We deploy the fix to production
+5. We credit you for the discovery (if you wish)
+6. After the fix is deployed, we may publicly disclose the vulnerability
+
+## Bug Bounty
+
+At this time, we do not offer a bug bounty program. However, we deeply appreciate security researchers who help us improve our security posture.
+
+## Hall of Fame
+
+We will maintain a list of security researchers who have helped improve our security:
+- [Name] - [Date] - [Vulnerability Type]
+
+## Security Updates
+
+We regularly update our dependencies and apply security patches. We monitor:
+- GitHub Security Advisories
+- npm audit reports
+- Supabase security announcements
+- OWASP recommendations
+
+## Contact
+
+- **Security Email:** [YOUR-SECURITY-EMAIL@example.com]
+- **General Contact:** [YOUR-GENERAL-EMAIL@example.com]
+- **Project:** https://github.com/[YOUR-ORG]/[YOUR-REPO]
+
+## PGP Key
+
+[Optional: Include your PGP public key for encrypted communication]
+
+---
+
+Last Updated: November 19, 2025
+

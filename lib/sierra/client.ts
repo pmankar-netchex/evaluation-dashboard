@@ -145,19 +145,23 @@ export class SierraClient {
           signal: controller.signal,
         });
         clearTimeout(timeoutId);
-      } catch (fetchError: any) {
+      } catch (fetchError: unknown) {
         clearTimeout(timeoutId);
         throw fetchError;
       }
-    } catch (fetchError: any) {
+    } catch (fetchError: unknown) {
       // Handle network errors
-      if (fetchError.name === 'AbortError' || fetchError.message?.includes('aborted')) {
+      const errorName = (fetchError as { name?: string })?.name;
+      const errorMessage = fetchError instanceof Error ? fetchError.message : String(fetchError);
+      const errorCode = (fetchError as { code?: string })?.code;
+      
+      if (errorName === 'AbortError' || errorMessage.includes('aborted')) {
         throw new Error(`Sierra API request timed out after 30 seconds. Please check your network connection and Sierra API availability.`);
       }
-      if (fetchError.code === 'ENOTFOUND' || fetchError.code === 'ECONNREFUSED' || fetchError.message?.includes('fetch failed')) {
-        throw new Error(`Cannot connect to Sierra API at ${this.apiUrl}. Please check: 1) API URL is correct, 2) Network connection, 3) API credentials are valid. Error: ${fetchError.message || fetchError.toString()}`);
+      if (errorCode === 'ENOTFOUND' || errorCode === 'ECONNREFUSED' || errorMessage.includes('fetch failed')) {
+        throw new Error(`Cannot connect to Sierra API at ${this.apiUrl}. Please check: 1) API URL is correct, 2) Network connection, 3) API credentials are valid. Error: ${errorMessage}`);
       }
-      throw new Error(`Sierra API network error: ${fetchError.message || fetchError.toString()}`);
+      throw new Error(`Sierra API network error: ${errorMessage}`);
     }
 
     if (!response.ok) {
@@ -241,7 +245,7 @@ export class SierraClient {
           this.conversationState = parsed.serverEvent.state;
           console.log('Sierra returned conversation state in serverEvent:', parsed.serverEvent.state.substring(0, 50) + '...');
         }
-      } catch (parseError) {
+      } catch {
         // Skip invalid JSON lines (like state objects or incomplete JSON)
         continue;
       }

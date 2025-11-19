@@ -8,6 +8,7 @@ import {
 import { SierraClient } from '@/lib/sierra/client';
 import { replayToSierra } from '@/lib/sierra/replay';
 import { Database } from '@/lib/supabase/database.types';
+import { ConversationEntry } from '@/types/salesforce';
 
 type Transcript = Database['public']['Tables']['transcripts']['Row'];
 
@@ -25,6 +26,7 @@ export async function GET(
       .from('transcripts') as any)
       .select('*')
       .eq('case_number', caseNumber)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .single() as { data: Transcript | null; error: any };
 
     if (existingTranscript && !fetchError) {
@@ -101,10 +103,10 @@ export async function GET(
     }
 
     return NextResponse.json(savedTranscript);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching transcript:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch transcript', details: error.message },
+      { error: 'Failed to fetch transcript', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
@@ -125,6 +127,7 @@ export async function POST(
       .from('transcripts') as any)
       .select('*')
       .eq('case_number', caseNumber)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .maybeSingle() as { data: Transcript | null; error: any };
 
     // If not found, try without leading zeros (in case of format mismatch)
@@ -136,7 +139,8 @@ export async function POST(
           .from('transcripts') as any)
           .select('*')
           .eq('case_number', caseWithoutZeros)
-          .maybeSingle() as { data: Transcript | null; error: any };
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .maybeSingle() as { data: Transcript | null; error: any };
         existingTranscript = result.data;
         fetchError = result.error;
       }
@@ -197,7 +201,7 @@ export async function POST(
 
     const agentforceEntries = existingTranscript.agentforce_transcript as any[];
     
-    let sierraEntries: any[];
+    let sierraEntries: ConversationEntry[];
     try {
       sierraEntries = await replayToSierra(
         agentforceEntries, 
@@ -205,12 +209,13 @@ export async function POST(
         undefined, // No progress callback for non-streaming endpoint
         caseNumber // Pass case ID to ensure single conversation per case
       );
-    } catch (sierraError: any) {
+    } catch (sierraError: unknown) {
       console.error('Error generating Sierra transcript:', sierraError);
+      const errorMessage = sierraError instanceof Error ? sierraError.message : String(sierraError);
       return NextResponse.json(
         { 
           error: 'Failed to generate Sierra transcript', 
-          details: sierraError.message || sierraError.toString(),
+          details: errorMessage,
           suggestion: 'Please check your Sierra API credentials and network connection.'
         },
         { status: 500 }
@@ -238,10 +243,10 @@ export async function POST(
     }
 
     return NextResponse.json(updatedTranscript);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error generating Sierra transcript:', error);
     return NextResponse.json(
-      { error: 'Failed to generate Sierra transcript', details: error.message },
+      { error: 'Failed to generate Sierra transcript', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

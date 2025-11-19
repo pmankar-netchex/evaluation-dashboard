@@ -24,6 +24,7 @@ export async function GET() {
     const { data: evaluatedTranscripts, error: evalError } = await (supabase
       .from('evaluations') as any)
       .select('transcript_id')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .eq('evaluator_id', user.id) as { data: Pick<Evaluation, 'transcript_id'>[] | null; error: any };
 
     if (evalError) {
@@ -83,10 +84,10 @@ export async function GET() {
 
     console.log(`Found next unevaluated transcript: ${transcript.case_number}`);
     return NextResponse.json(transcript);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching next transcript:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch next transcript', details: error.message },
+      { error: 'Failed to fetch next transcript', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

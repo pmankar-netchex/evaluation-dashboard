@@ -1,9 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { Winner, EvaluationScores } from '@/types';
-import { textStyles, colors, materialComponents, materialText, materialBorder, materialTypography } from '@/lib/design-tokens';
 
 interface EvaluationFormProps {
   onSubmit: (evaluation: {
@@ -41,6 +40,10 @@ export function EvaluationForm({
   );
   const [notes, setNotes] = useState(initialData?.notes || '');
 
+  const handleSubmit = () => {
+    onSubmit({ winner, scores, notes: notes.trim() || undefined });
+  };
+
   // Keyboard shortcuts
   useHotkeys('1', () => !disabled && setWinner('agentforce'), {
     enableOnFormTags: true,
@@ -67,10 +70,6 @@ export function EvaluationForm({
   useHotkeys('escape', () => !disabled && onSkip(), {
     enableOnFormTags: true,
   });
-
-  const handleSubmit = () => {
-    onSubmit({ winner, scores, notes: notes.trim() || undefined });
-  };
 
   const updateScore = (
     metric: keyof EvaluationScores,

@@ -27,6 +27,7 @@ export async function GET(request: NextRequest) {
     const { data: allTranscripts, error: transcriptsError } = await (supabase
       .from('transcripts') as any)
       .select('id, case_number, created_at')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .order('case_number', { ascending: true }) as { data: Pick<Transcript, 'id' | 'case_number' | 'created_at'>[] | null; error: any };
 
     if (transcriptsError) {
@@ -63,7 +64,7 @@ export async function GET(request: NextRequest) {
 
     // Determine which transcripts to show based on direction
     let targetTranscript = null;
-    let position = { current: 0, total: allTranscripts.length };
+    const position = { current: 0, total: allTranscripts.length };
 
     if (direction === 'next') {
       // Find next unevaluated transcript
@@ -118,10 +119,10 @@ export async function GET(request: NextRequest) {
       hasNext: currentIndex < allTranscripts.length - 1,
       hasPrevious: currentIndex > 0,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching navigation transcript:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch transcript', details: error.message },
+      { error: 'Failed to fetch transcript', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

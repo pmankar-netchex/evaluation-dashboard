@@ -36,6 +36,18 @@ export default async function AnalyticsLayout({
             </div>
             <div className="flex items-center gap-4">
               <Link
+                href="/dashboard"
+                className="text-sm font-normal leading-5 text-[#212121] hover:text-[#1976d2] transition-colors"
+              >
+                Evaluator
+              </Link>
+              <Link
+                href="/chat"
+                className="text-sm font-normal leading-5 text-[#212121] hover:text-[#1976d2] transition-colors"
+              >
+                Chat
+              </Link>
+              <Link
                 href="/analytics"
                 className="text-sm font-normal leading-5 text-[#212121] hover:text-[#1976d2] transition-colors"
               >
