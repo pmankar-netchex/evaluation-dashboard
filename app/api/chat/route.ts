@@ -68,12 +68,11 @@ export async function GET(request: NextRequest) {
     
     const offset = (page - 1) * limit;
 
-    // Build query
+    // Build query - chat history is available to all authenticated users
     // Type assertion needed due to Supabase type inference limitations
     let query = (supabase
       .from('chat_sessions') as any)
       .select('*, chat_messages(count)', { count: 'exact' })
-      .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 

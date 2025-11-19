@@ -127,12 +127,11 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const transcriptId = searchParams.get('transcript_id');
-    // SECURITY FIX: Removed evaluator_id parameter - users can only view their own evaluations
+    // Analytics are available to all authenticated users - showing all evaluations
 
     let query = supabase
       .from('evaluations')
-      .select('*, transcripts(*), chat_sessions(*)')
-      .eq('evaluator_id', user.id); // Always use current user
+      .select('*, transcripts(*), chat_sessions(*)');
 
     if (transcriptId) {
       query = query.eq('transcript_id', transcriptId);
