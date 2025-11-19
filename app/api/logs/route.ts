@@ -19,8 +19,29 @@ export async function GET() {
       );
     }
 
+    // Filter out active chat sessions - only show ended sessions with feedback
+    // Case comparison evaluations are always included (they don't have chat sessions)
+    const filteredEvaluations = evaluations?.filter((evaluation: any) => {
+      // Include all case_comparison evaluations
+      if (evaluation.evaluation_type === 'case_comparison') {
+        return true;
+      }
+      
+      // For custom_chat evaluations, only include if session is ended
+      if (evaluation.evaluation_type === 'custom_chat') {
+        const chatSession = Array.isArray(evaluation.chat_sessions) && evaluation.chat_sessions.length > 0 
+          ? evaluation.chat_sessions[0] 
+          : evaluation.chat_sessions;
+        
+        // Only include if session exists and is ended
+        return chatSession && chatSession.session_status === 'ended';
+      }
+      
+      return true;
+    }) || [];
+
     // Transform the data to flatten the structure
-    const logs = evaluations?.map((evaluation: any) => {
+    const logs = filteredEvaluations.map((evaluation: any) => {
       const evaluationType = evaluation.evaluation_type || 'case_comparison';
       
       // Handle comparison evaluations

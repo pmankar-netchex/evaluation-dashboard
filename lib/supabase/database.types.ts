@@ -23,6 +23,7 @@ export interface Database {
           updated_at: string
           test_batch_id: string | null
           metadata: Json | null
+          messaging_session_id: string | null
         }
         Insert: {
           id?: string
@@ -34,6 +35,7 @@ export interface Database {
           updated_at?: string
           test_batch_id?: string | null
           metadata?: Json | null
+          messaging_session_id?: string | null
         }
         Update: {
           id?: string
@@ -45,6 +47,7 @@ export interface Database {
           updated_at?: string
           test_batch_id?: string | null
           metadata?: Json | null
+          messaging_session_id?: string | null
         }
       }
       evaluations: {
@@ -61,6 +64,7 @@ export interface Database {
           evaluation_timestamp: string
           time_spent_seconds: number | null
           created_at: string
+          messaging_session_id: string | null
         }
         Insert: {
           id?: string
@@ -75,6 +79,7 @@ export interface Database {
           evaluation_timestamp?: string
           time_spent_seconds?: number | null
           created_at?: string
+          messaging_session_id?: string | null
         }
         Update: {
           id?: string
@@ -89,6 +94,7 @@ export interface Database {
           evaluation_timestamp?: string
           time_spent_seconds?: number | null
           created_at?: string
+          messaging_session_id?: string | null
         }
       }
       chat_sessions: {
@@ -100,6 +106,7 @@ export interface Database {
           session_status: 'active' | 'ended'
           sierra_conversation_state: string | null
           created_at: string
+          messaging_session_id: string | null
         }
         Insert: {
           id?: string
@@ -109,6 +116,7 @@ export interface Database {
           session_status?: 'active' | 'ended'
           sierra_conversation_state?: string | null
           created_at?: string
+          messaging_session_id?: string | null
         }
         Update: {
           id?: string
@@ -118,6 +126,7 @@ export interface Database {
           session_status?: 'active' | 'ended'
           sierra_conversation_state?: string | null
           created_at?: string
+          messaging_session_id?: string | null
         }
       }
       chat_messages: {

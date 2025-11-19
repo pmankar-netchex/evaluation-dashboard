@@ -62,18 +62,20 @@ export async function GET(
 
     await salesforceSession.authenticate();
 
-    const conversationIdentifier = await getConversationIdentifier(
+    const conversationResult = await getConversationIdentifier(
       salesforceSession,
       caseNumber,
       process.env.SALESFORCE_API_VERSION || 'v65.0'
     );
 
-    if (!conversationIdentifier) {
+    if (!conversationResult) {
       return NextResponse.json(
         { error: 'Conversation not found for this case number' },
         { status: 404 }
       );
     }
+
+    const { conversationIdentifier, messagingSessionId } = conversationResult;
 
     const agentforceEntries = await getConversationEntries(
       salesforceSession,
@@ -90,6 +92,7 @@ export async function GET(
         agentforce_transcript: agentforceEntries,
         sierra_transcript: [], // Empty array - will be populated when Sierra replay is triggered
         sierra_version: process.env.SIERRA_VERSION || 'v2.1.0',
+        messaging_session_id: messagingSessionId || null,
       })
       .select()
       .single();

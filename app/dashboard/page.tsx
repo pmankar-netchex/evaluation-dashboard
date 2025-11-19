@@ -50,7 +50,7 @@ export default function DashboardPage() {
   useEffect(() => {
     const caseParam = searchParams.get('case');
     if (caseParam) {
-      loadTranscript(caseParam);
+      loadTranscript(caseParam, 'case');
     }
   }, [searchParams]);
 
@@ -84,13 +84,18 @@ export default function DashboardPage() {
     fetchProgress();
   }, [fetchProgress]);
 
-  const loadTranscript = async (caseNumber: string) => {
+  const loadTranscript = async (identifier: string, type: 'case' | 'messagingSession') => {
     setLoading(true);
     setError(null);
     setCurrentEvaluation(null); // Clear previous evaluation
 
     try {
-      const response = await fetch(`/api/transcripts/${caseNumber}`);
+      // Build API endpoint based on type
+      const endpoint = type === 'case' 
+        ? `/api/transcripts/${identifier}`
+        : `/api/transcripts/messaging-session/${identifier}`;
+      
+      const response = await fetch(endpoint);
       if (!response.ok) {
         let errorMessage = 'Failed to load transcript';
         let errorDetails = '';
@@ -565,6 +570,7 @@ export default function DashboardPage() {
         onLoadCase={loadTranscript}
         loading={loading}
         currentCaseNumber={currentTranscript?.case_number}
+        currentMessagingSessionId={currentTranscript?.messaging_session_id || undefined}
       />
 
       {error && (

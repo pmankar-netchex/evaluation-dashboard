@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
 // POST: Create a new chat session
-export async function POST() {
+export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
     
@@ -16,6 +16,15 @@ export async function POST() {
       );
     }
 
+    // Parse request body for optional messaging_session_id
+    let messagingSessionId: string | undefined;
+    try {
+      const body = await request.json();
+      messagingSessionId = body.messaging_session_id;
+    } catch {
+      // Body is optional, continue without it
+    }
+
     // Create new chat session
     // Type assertion needed due to Supabase type inference limitations
     const { data: session, error: sessionError } = await (supabase
@@ -23,6 +32,7 @@ export async function POST() {
       .insert({
         user_id: user.id,
         session_status: 'active',
+        messaging_session_id: messagingSessionId || null,
       })
       .select()
       .single();
@@ -65,43 +75,116 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
     const status = searchParams.get('status'); // 'active' or 'ended'
+    const allUsers = searchParams.get('all_users') === 'true'; // For logs page - all ended sessions with feedback
     
     const offset = (page - 1) * limit;
 
-    // Build query - chat history is available to all authenticated users
+    // Build query based on access rules:
+    // 1. For active chat (status=active): only active sessions for current user
+    // 2. For history (no status filter): all sessions for current user (active + ended)
+    // 3. For logs (all_users=true): all ended sessions with feedback (irrespective of user)
     // Type assertion needed due to Supabase type inference limitations
-    let query = (supabase
-      .from('chat_sessions') as any)
-      .select('*, chat_messages(count)', { count: 'exact' })
-      .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1);
+    
+    let sessions: any[] = [];
+    let totalCount = 0;
 
-    // Apply status filter if provided
-    if (status === 'active' || status === 'ended') {
-      query = query.eq('session_status', status);
-    }
+    if (allUsers) {
+      // Logs page mode: show all ended sessions with feedback (irrespective of user)
+      // First, get all chat session IDs that have evaluations (feedback submitted)
+      const { data: evaluations } = await (supabase
+        .from('evaluations') as any)
+        .select('chat_session_id')
+        .not('chat_session_id', 'is', null);
 
-    const { data: sessions, error: sessionsError, count } = await query;
-
-    if (sessionsError) {
-      console.error('Error fetching chat sessions:', sessionsError);
-      return NextResponse.json(
-        { error: 'Failed to fetch chat sessions', details: sessionsError.message },
-        { status: 500 }
-      );
+      const sessionIdsWithFeedback = evaluations
+        ?.map((e: any) => e.chat_session_id)
+        .filter((id: string) => id !== null) || [];
+      
+      if (sessionIdsWithFeedback.length > 0) {
+        // Get all ended sessions that have feedback
+        const { data, error: sessionsError, count } = await (supabase
+          .from('chat_sessions') as any)
+          .select('*, chat_messages(count)', { count: 'exact' })
+          .eq('session_status', 'ended')
+          .in('id', sessionIdsWithFeedback)
+          .order('created_at', { ascending: false })
+          .range(offset, offset + limit - 1);
+        
+        if (sessionsError) {
+          console.error('Error fetching chat sessions:', sessionsError);
+          return NextResponse.json(
+            { error: 'Failed to fetch chat sessions', details: sessionsError.message },
+            { status: 500 }
+          );
+        }
+        
+        sessions = data || [];
+        totalCount = count || 0;
+      } else {
+        // No sessions with feedback
+        sessions = [];
+        totalCount = 0;
+      }
+    } else if (status === 'active') {
+      // Active chat mode: only active sessions for current user
+      const { data, error: sessionsError, count } = await (supabase
+        .from('chat_sessions') as any)
+        .select('*, chat_messages(count)', { count: 'exact' })
+        .eq('user_id', user.id)
+        .eq('session_status', 'active')
+        .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1);
+      
+      if (sessionsError) {
+        console.error('Error fetching chat sessions:', sessionsError);
+        return NextResponse.json(
+          { error: 'Failed to fetch chat sessions', details: sessionsError.message },
+          { status: 500 }
+        );
+      }
+      
+      sessions = data || [];
+      totalCount = count || 0;
+    } else {
+      // History mode: all sessions for current user (active + ended, no status filter)
+      // If status=ended is specified, only show ended sessions for current user
+      let query = (supabase
+        .from('chat_sessions') as any)
+        .select('*, chat_messages(count)', { count: 'exact' })
+        .eq('user_id', user.id);
+      
+      if (status === 'ended') {
+        query = query.eq('session_status', 'ended');
+      }
+      // If no status filter, show both active and ended (all sessions for user)
+      
+      query = query.order('created_at', { ascending: false }).range(offset, offset + limit - 1);
+      
+      const { data, error: sessionsError, count } = await query;
+      
+      if (sessionsError) {
+        console.error('Error fetching chat sessions:', sessionsError);
+        return NextResponse.json(
+          { error: 'Failed to fetch chat sessions', details: sessionsError.message },
+          { status: 500 }
+        );
+      }
+      
+      sessions = data || [];
+      totalCount = count || 0;
     }
 
     // Get evaluations for these sessions
     const sessionIds = sessions?.map((s: any) => s.id) || [];
     // Type assertion needed due to Supabase type inference limitations
-    const { data: evaluations } = await (supabase
+    const { data: sessionEvaluations } = await (supabase
       .from('evaluations') as any)
       .select('chat_session_id, scores')
       .in('chat_session_id', sessionIds);
 
     // Map evaluations to sessions
     const evaluationsMap = new Map(
-      evaluations?.map((e: any) => [e.chat_session_id, e]) || []
+      sessionEvaluations?.map((e: any) => [e.chat_session_id, e]) || []
     );
 
     const sessionsWithEvaluations = sessions?.map((session: any) => ({
@@ -114,8 +197,8 @@ export async function GET(request: NextRequest) {
       pagination: {
         page,
         limit,
-        total: count || 0,
-        totalPages: Math.ceil((count || 0) / limit),
+        total: totalCount,
+        totalPages: Math.ceil(totalCount / limit),
       },
     });
   } catch (error: unknown) {

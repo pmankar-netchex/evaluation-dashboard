@@ -9,16 +9,24 @@ import {
 } from '@/types/salesforce';
 
 /**
+ * Result type for getConversationIdentifier
+ */
+export interface ConversationIdentifierResult {
+  conversationIdentifier: string;
+  messagingSessionId: string | null;
+}
+
+/**
  * Get Conversation Identifier from Case Number via 3-step lookup:
  * 1. Case → Case Id
- * 2. MessagingSession → ConversationId
+ * 2. MessagingSession → ConversationId and MessagingSessionId (Id)
  * 3. Conversation → ConversationIdentifier
  */
 export async function getConversationIdentifier(
   session: SalesforceSession,
   caseNumber: string,
   apiVersion: string
-): Promise<string | null> {
+): Promise<ConversationIdentifierResult | null> {
   const instanceUrl = session.getInstanceUrl();
   const baseQueryUrl = `${instanceUrl}/services/data/${apiVersion}/query`;
 
@@ -43,8 +51,8 @@ export async function getConversationIdentifier(
 
   const caseId = caseResult.records[0].Id;
 
-  // Step 2: Get ConversationId
-  const messagingQuery = `SELECT ConversationId FROM MessagingSession WHERE CaseId='${caseId}' LIMIT 1`;
+  // Step 2: Get ConversationId and MessagingSessionId (Id)
+  const messagingQuery = `SELECT Id, ConversationId FROM MessagingSession WHERE CaseId='${caseId}' LIMIT 1`;
   const messagingQueryUrl = `${baseQueryUrl}?q=${encodeURIComponent(messagingQuery)}`;
   response = await session.makeRequest('GET', messagingQueryUrl, {
     headers: {},
@@ -63,6 +71,7 @@ export async function getConversationIdentifier(
   }
 
   const conversationId = messagingResult.records[0].ConversationId;
+  const messagingSessionId = messagingResult.records[0].Id; // This is the MessagingSessionId
 
   // Step 3: Get ConversationIdentifier
   const conversationQuery = `SELECT ConversationIdentifier FROM Conversation WHERE Id='${conversationId}' LIMIT 1`;
@@ -86,7 +95,10 @@ export async function getConversationIdentifier(
   const conversationIdentifier =
     conversationResult.records[0].ConversationIdentifier;
 
-  return conversationIdentifier;
+  return {
+    conversationIdentifier,
+    messagingSessionId,
+  };
 }
 
 /**

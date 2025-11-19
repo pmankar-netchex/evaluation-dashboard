@@ -28,6 +28,7 @@ export interface Transcript {
   sierra_version?: string;
   test_batch_id?: string;
   metadata?: Record<string, any>;
+  messaging_session_id?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -81,6 +82,7 @@ export interface ChatSession {
   started_at: string;
   ended_at?: string;
   session_status: 'active' | 'ended';
+  messaging_session_id?: string;
   created_at: string;
 }
 

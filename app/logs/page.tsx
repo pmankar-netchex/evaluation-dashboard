@@ -181,8 +181,8 @@ export default function LogsPage() {
   // Navigate based on evaluation type
   const handleViewTranscript = (log: LogEntry) => {
     if (log.evaluationType === 'custom_chat' && log.chatSessionId) {
-      // For chat evaluations, go to chat history with session ID
-      router.push(`/chat/history?session=${log.chatSessionId}`);
+      // For chat evaluations, go to dedicated transcript page
+      router.push(`/chat/transcript/${log.chatSessionId}`);
     } else if (log.evaluationType === 'case_comparison' && log.caseNumber && log.caseNumber !== 'Unknown') {
       // For comparison evaluations, go to dashboard with case number in VIEW MODE (read-only)
       router.push(`/dashboard?case=${encodeURIComponent(log.caseNumber)}&mode=view`);

@@ -28,6 +28,28 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validatedData = evaluationSchema.parse(body);
 
+    // Get messaging_session_id from request, or fetch from related chat_session/transcript
+    let messagingSessionId: string | null = validatedData.messaging_session_id || null;
+    
+    if (!messagingSessionId) {
+      // Try to get messaging_session_id from related chat_session or transcript
+      if (validatedData.chat_session_id) {
+        const { data: chatSession } = await (supabase
+          .from('chat_sessions') as any)
+          .select('messaging_session_id')
+          .eq('id', validatedData.chat_session_id)
+          .single();
+        messagingSessionId = chatSession?.messaging_session_id || null;
+      } else if (validatedData.transcript_id) {
+        const { data: transcript } = await (supabase
+          .from('transcripts') as any)
+          .select('messaging_session_id')
+          .eq('id', validatedData.transcript_id)
+          .single();
+        messagingSessionId = transcript?.messaging_session_id || null;
+      }
+    }
+
     // Insert evaluation
     const insertData: Database['public']['Tables']['evaluations']['Insert'] = {
       transcript_id: validatedData.transcript_id || null,
@@ -39,6 +61,7 @@ export async function POST(request: NextRequest) {
       scores: validatedData.scores as Database['public']['Tables']['evaluations']['Insert']['scores'],
       notes: validatedData.notes || null,
       time_spent_seconds: validatedData.time_spent_seconds || null,
+      messaging_session_id: messagingSessionId,
     };
 
     // Type assertion needed due to Supabase type inference limitations

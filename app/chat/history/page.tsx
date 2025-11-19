@@ -37,12 +37,17 @@ export default function ChatHistoryPage() {
   // Auto-load session from query parameter
   useEffect(() => {
     const sessionId = searchParams.get('session');
-    if (sessionId && sessions.length > 0) {
+    if (sessionId) {
       // Check if this session exists in the loaded sessions
       const sessionExists = sessions.some(s => s.id === sessionId);
       if (sessionExists) {
         loadSessionDetails(sessionId);
+      } else if (sessions.length > 0) {
+        // Session not in list - might be from another user (ended session with feedback)
+        // Try to load it directly - the API will handle access control
+        loadSessionDetails(sessionId);
       }
+      // If sessions.length === 0, wait for sessions to load first
     }
   }, [searchParams, sessions]);
 
@@ -161,54 +166,54 @@ export default function ChatHistoryPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Sessions List */}
           <div className="lg:col-span-1">
-            <div className="bg-white border border-[#eeeeee] rounded-lg shadow-sm overflow-hidden">
-              <div className="px-6 py-4 border-b border-[#eeeeee]">
-                <h2 className="text-lg font-medium text-[#212121]">Sessions</h2>
-                <p className="text-xs text-[#757575] mt-1">
-                  {sessions.length} total
-                </p>
-              </div>
-              <div className="divide-y divide-[#eeeeee] overflow-y-auto" style={{ maxHeight: '600px' }}>
-                {sessions.map((session) => {
-                  const messageCount = session.chat_messages?.[0]?.count || 0;
-                  return (
-                    <button
-                      key={session.id}
-                      onClick={() => loadSessionDetails(session.id)}
-                      className={`w-full text-left px-6 py-4 hover:bg-[#f5f5f5] transition-colors ${
-                        selectedSession?.id === session.id ? 'bg-[#e3f2fd]' : ''
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-sm font-medium text-[#212121]">
-                              {formatDate(session.started_at)}
-                            </span>
-                            {session.has_evaluation && (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-[#4caf50] text-white">
-                                ✓
+              <div className="bg-white border border-[#eeeeee] rounded-lg shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-[#eeeeee]">
+                  <h2 className="text-lg font-medium text-[#212121]">Sessions</h2>
+                  <p className="text-xs text-[#757575] mt-1">
+                    {sessions.length} total
+                  </p>
+                </div>
+                <div className="divide-y divide-[#eeeeee] overflow-y-auto" style={{ maxHeight: '600px' }}>
+                  {sessions.map((session) => {
+                    const messageCount = session.chat_messages?.[0]?.count || 0;
+                    return (
+                      <button
+                        key={session.id}
+                        onClick={() => loadSessionDetails(session.id)}
+                        className={`w-full text-left px-6 py-4 hover:bg-[#f5f5f5] transition-colors ${
+                          selectedSession?.id === session.id ? 'bg-[#e3f2fd]' : ''
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-sm font-medium text-[#212121]">
+                                {formatDate(session.started_at)}
+                              </span>
+                              {session.has_evaluation && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-[#4caf50] text-white">
+                                  ✓
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-[#757575]">
+                              <span>{messageCount} messages</span>
+                              <span>•</span>
+                              <span>{getSessionDuration(session.started_at, session.ended_at)}</span>
+                            </div>
+                            {session.session_status === 'active' && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-[#2196f3] text-white mt-1">
+                                Active
                               </span>
                             )}
                           </div>
-                          <div className="flex items-center gap-2 text-xs text-[#757575]">
-                            <span>{messageCount} messages</span>
-                            <span>•</span>
-                            <span>{getSessionDuration(session.started_at, session.ended_at)}</span>
-                          </div>
-                          {session.session_status === 'active' && (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-[#2196f3] text-white mt-1">
-                              Active
-                            </span>
-                          )}
                         </div>
-                      </div>
-                    </button>
-                  );
-                })}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
-          </div>
 
           {/* Session Details */}
           <div className="lg:col-span-2">

@@ -44,6 +44,7 @@ export const evaluationSchema = z.object({
   }),
   notes: evaluationNotesSchema,
   time_spent_seconds: z.number().int().min(0).max(86400).optional(), // Max 24 hours
+  messaging_session_id: z.string().max(255, "MessagingSessionId too long").optional(),
 }).refine(
   (data) => {
     // Must have either transcript_id or chat_session_id, not both
