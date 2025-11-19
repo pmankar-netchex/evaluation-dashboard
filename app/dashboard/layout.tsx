@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
+import { HealthStatus } from '@/components/health-status';
 import { textStyles, colors, materialText, materialBackground, materialBorder, materialTypography } from '@/lib/design-tokens';
 
 export default async function DashboardLayout({
@@ -29,10 +30,11 @@ export default async function DashboardLayout({
       <nav className="bg-white shadow-sm border-b border-[#e0e0e0]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
-            <div className="flex items-center">
+            <div className="flex items-center gap-2">
               <Link href="/dashboard" className="text-[22px] font-medium leading-[28px] text-[#212121]">
                 Chatbot Evaluator
               </Link>
+              <HealthStatus />
             </div>
             <div className="flex items-center gap-4">
               <Link

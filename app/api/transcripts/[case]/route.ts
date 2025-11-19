@@ -77,11 +77,50 @@ export async function GET(
 
     const { conversationIdentifier, messagingSessionId, messagingSessionName } = conversationResult;
 
+    if (!messagingSessionId) {
+      return NextResponse.json(
+        { error: 'MessagingSessionId is required but was not found in Salesforce' },
+        { status: 500 }
+      );
+    }
+
     const agentforceEntries = await getConversationEntries(
       salesforceSession,
       conversationIdentifier,
       process.env.SALESFORCE_API_VERSION || 'v65.0'
     );
+
+    // Check if transcript with this messaging_session_id already exists
+    const { data: existingByMessagingId } = await (supabase
+      .from('transcripts') as any)
+      .select('*')
+      .eq('messaging_session_id', messagingSessionId)
+      .maybeSingle();
+
+    if (existingByMessagingId) {
+      // Update existing transcript
+      const { data: updatedTranscript, error: updateError } = await (supabase
+        .from('transcripts') as any)
+        .update({
+          case_number: caseNumber,
+          agentforce_transcript: agentforceEntries,
+          messaging_session_name: messagingSessionName || null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('messaging_session_id', messagingSessionId)
+        .select()
+        .single();
+
+      if (updateError) {
+        console.error('Error updating transcript:', updateError);
+        return NextResponse.json(
+          { error: 'Failed to update transcript', details: updateError.message },
+          { status: 500 }
+        );
+      }
+
+      return NextResponse.json(updatedTranscript);
+    }
 
     // Save to database with empty Sierra transcript (will be generated later)
     // Type assertion needed due to Supabase type inference limitations
@@ -92,7 +131,7 @@ export async function GET(
         agentforce_transcript: agentforceEntries,
         sierra_transcript: [], // Empty array - will be populated when Sierra replay is triggered
         sierra_version: process.env.SIERRA_VERSION || 'v2.1.0',
-        messaging_session_id: messagingSessionId || null,
+        messaging_session_id: messagingSessionId, // Required, always set
         messaging_session_name: messagingSessionName || null,
       })
       .select()

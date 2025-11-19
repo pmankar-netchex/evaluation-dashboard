@@ -84,7 +84,7 @@ export default function DashboardPage() {
     fetchProgress();
   }, [fetchProgress]);
 
-  const loadTranscript = async (identifier: string, type: 'case' | 'messagingSession') => {
+  const loadTranscript = async (identifier: string, type: 'case' | 'messagingSession' | 'messagingSessionName') => {
     setLoading(true);
     setError(null);
     setCurrentEvaluation(null); // Clear previous evaluation
@@ -93,7 +93,9 @@ export default function DashboardPage() {
       // Build API endpoint based on type
       const endpoint = type === 'case' 
         ? `/api/transcripts/${identifier}`
-        : `/api/transcripts/messaging-session/${identifier}`;
+        : type === 'messagingSession'
+        ? `/api/transcripts/messaging-session/${identifier}`
+        : `/api/transcripts/messaging-session-name/${encodeURIComponent(identifier)}`;
       
       const response = await fetch(endpoint);
       if (!response.ok) {
@@ -376,8 +378,8 @@ export default function DashboardPage() {
   }, [loading, navigationState, loadNextTranscript, loadPreviousTranscript]);
 
   const generateSierraTranscript = async () => {
-    if (!currentTranscript?.case_number && !currentTranscript?.id) {
-      setError('No case number or transcript ID available');
+    if (!currentTranscript?.id) {
+      setError('No transcript ID available');
       return;
     }
 
@@ -386,16 +388,14 @@ export default function DashboardPage() {
     setSierraProgress(null);
 
     try {
-      // Use case_number if available, otherwise we can't proceed
+      // Use case_number if available, otherwise use transcript ID
       const caseNumber = currentTranscript.case_number;
-      if (!caseNumber) {
-        throw new Error('Case number is required to generate Sierra transcript');
-      }
+      const identifier = caseNumber || currentTranscript.id;
 
-      console.log('Generating Sierra transcript for case:', caseNumber);
+      console.log('Generating Sierra transcript for:', caseNumber ? `case ${caseNumber}` : `transcript ${currentTranscript.id}`);
       
       // Use fetch with streaming response for Server-Sent Events
-      const response = await fetch(`/api/transcripts/${caseNumber}/generate`, {
+      const response = await fetch(`/api/transcripts/${identifier}/generate`, {
         method: 'POST',
       });
 
@@ -537,39 +537,34 @@ export default function DashboardPage() {
         onClose={() => setToast({ ...toast, isVisible: false })}
         duration={3000}
       />
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <div className="flex items-start justify-between">
-            <div>
-              <h1 className="text-[32px] font-normal leading-[40px] text-[#212121]">Evaluation Dashboard</h1>
-              <p className="mt-1 text-sm font-normal leading-5 text-[#757575]">
-                Compare Agentforce and Sierra chatbot conversations side-by-side
-              </p>
-            </div>
-            {currentTranscript && (
-              <button
-                onClick={handleStartNewEvaluation}
-                disabled={loading || generatingSierra}
-                className="ml-4 bg-[#4caf50] text-white px-6 py-2 rounded-full font-medium text-sm hover:bg-[#43a047] focus:outline-none focus:ring-2 focus:ring-[#4caf50] focus:ring-offset-2 disabled:bg-[#e0e0e0] disabled:text-[#9e9e9e] disabled:cursor-not-allowed transition-colors duration-200 shadow-sm hover:shadow-md whitespace-nowrap flex items-center gap-2"
-                title="Clear current data and start a fresh evaluation"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                New Evaluation
-              </button>
-            )}
+      <div>
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-[32px] font-normal leading-[40px] text-[#212121]">Evaluation Dashboard</h1>
+            <p className="mt-1 text-sm font-normal leading-5 text-[#757575]">
+              Compare Agentforce and Sierra chatbot conversations side-by-side
+            </p>
           </div>
-        </div>
-        <div className="lg:col-span-1">
-          <HealthStatus />
+          {currentTranscript && (
+            <button
+              onClick={handleStartNewEvaluation}
+              disabled={loading || generatingSierra}
+              className="ml-4 bg-[#4caf50] text-white px-6 py-2 rounded-full font-medium text-sm hover:bg-[#43a047] focus:outline-none focus:ring-2 focus:ring-[#4caf50] focus:ring-offset-2 disabled:bg-[#e0e0e0] disabled:text-[#9e9e9e] disabled:cursor-not-allowed transition-colors duration-200 shadow-sm hover:shadow-md whitespace-nowrap flex items-center gap-2"
+              title="Clear current data and start a fresh evaluation"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              New Evaluation
+            </button>
+          )}
         </div>
       </div>
 
       <CaseLoader
         onLoadCase={loadTranscript}
         loading={loading}
-        currentCaseNumber={currentTranscript?.case_number}
+        currentCaseNumber={currentTranscript?.case_number || undefined}
         currentMessagingSessionId={currentTranscript?.messaging_session_id || undefined}
         currentMessagingSessionName={currentTranscript?.messaging_session_name || undefined}
       />

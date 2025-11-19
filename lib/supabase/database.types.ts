@@ -15,7 +15,7 @@ export interface Database {
       transcripts: {
         Row: {
           id: string
-          case_number: string
+          case_number: string | null
           agentforce_transcript: Json
           sierra_transcript: Json
           sierra_version: string | null
@@ -23,12 +23,12 @@ export interface Database {
           updated_at: string
           test_batch_id: string | null
           metadata: Json | null
-          messaging_session_id: string | null
+          messaging_session_id: string
           messaging_session_name: string | null
         }
         Insert: {
           id?: string
-          case_number: string
+          case_number?: string | null
           agentforce_transcript: Json
           sierra_transcript: Json
           sierra_version?: string | null
@@ -36,7 +36,7 @@ export interface Database {
           updated_at?: string
           test_batch_id?: string | null
           metadata?: Json | null
-          messaging_session_id?: string | null
+          messaging_session_id: string
           messaging_session_name?: string | null
         }
         Update: {
@@ -49,7 +49,7 @@ export interface Database {
           updated_at?: string
           test_batch_id?: string | null
           metadata?: Json | null
-          messaging_session_id?: string | null
+          messaging_session_id?: string
           messaging_session_name?: string | null
         }
       }

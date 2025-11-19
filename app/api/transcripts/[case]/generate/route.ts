@@ -15,11 +15,11 @@ export async function POST(
   { params }: { params: Promise<{ case: string }> }
 ) {
   try {
-    const { case: caseNumber } = await params;
+    const { case: identifier } = await params;
     
-    if (!caseNumber) {
+    if (!identifier) {
       return new Response(
-        JSON.stringify({ type: 'error', message: 'Case number is required' }),
+        JSON.stringify({ type: 'error', message: 'Case number or transcript ID is required' }),
         {
           status: 400,
           headers: { 'Content-Type': 'application/json' },
@@ -90,26 +90,46 @@ export async function POST(
 
         const supabase = await createServiceClient();
 
-        // Get existing transcript
-        let { data: existingTranscript, error: fetchError } = await supabase
-          .from('transcripts')
-          .select('*')
-          .eq('case_number', caseNumber)
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          .maybeSingle() as { data: Transcript | null; error: any };
+        // Get existing transcript - try by ID first (UUID format), then by case number
+        let existingTranscript: Transcript | null = null;
+        let fetchError: any = null;
 
-        // Fallback for case number format
-        if (!existingTranscript && !fetchError && caseNumber) {
-          const caseWithoutZeros = caseNumber.replace(/^0+/, '');
-          if (caseWithoutZeros !== caseNumber) {
-            const result = await supabase
-              .from('transcripts')
-              .select('*')
-              .eq('case_number', caseWithoutZeros)
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          .maybeSingle() as { data: Transcript | null; error: any };
-            existingTranscript = result.data;
-            fetchError = result.error;
+        // Check if identifier is a UUID (transcript ID)
+        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(identifier);
+        
+        if (isUUID) {
+          const result = await supabase
+            .from('transcripts')
+            .select('*')
+            .eq('id', identifier)
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            .maybeSingle() as { data: Transcript | null; error: any };
+          existingTranscript = result.data;
+          fetchError = result.error;
+        } else {
+          // Try by case number
+          const result = await supabase
+            .from('transcripts')
+            .select('*')
+            .eq('case_number', identifier)
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            .maybeSingle() as { data: Transcript | null; error: any };
+          existingTranscript = result.data;
+          fetchError = result.error;
+
+          // Fallback for case number format (without leading zeros)
+          if (!existingTranscript && !fetchError && identifier) {
+            const caseWithoutZeros = identifier.replace(/^0+/, '');
+            if (caseWithoutZeros !== identifier) {
+              const fallbackResult = await supabase
+                .from('transcripts')
+                .select('*')
+                .eq('case_number', caseWithoutZeros)
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                .maybeSingle() as { data: Transcript | null; error: any };
+              existingTranscript = fallbackResult.data;
+              fetchError = fallbackResult.error;
+            }
           }
         }
 
@@ -187,6 +207,9 @@ export async function POST(
 
         const agentforceEntries = existingTranscript.agentforce_transcript as any[];
 
+        // Use case number if available, otherwise use transcript ID for Sierra conversation ID
+        const sierraConversationId = existingTranscript.case_number || existingTranscript.id;
+
         sendEvent({
           type: 'start',
           message: 'Starting Sierra transcript generation...',
@@ -196,7 +219,7 @@ export async function POST(
           agentforceEntries,
           sierraClient,
           progressCallback,
-          caseNumber // Pass case ID to ensure single conversation per case
+          sierraConversationId // Pass identifier to ensure single conversation
         );
 
         // Update database with Sierra transcript
@@ -210,13 +233,13 @@ export async function POST(
           sierra_version: process.env.SIERRA_VERSION || 'v2.1.0',
         };
 
+        // Update by ID if identifier is UUID, otherwise by case_number
         // Type assertion needed due to Supabase type inference limitations
-        const updateQuery = supabase
-          .from('transcripts') as any;
+        const updateQuery = isUUID 
+          ? (supabase.from('transcripts') as any).update(updateData).eq('id', identifier)
+          : (supabase.from('transcripts') as any).update(updateData).eq('case_number', identifier);
         
         const { data: updatedTranscript, error: updateError } = await updateQuery
-          .update(updateData)
-          .eq('case_number', caseNumber)
           .select()
           .single();
         

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 
 interface HealthCheck {
   status: string;
@@ -33,6 +33,8 @@ export function HealthStatus() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showTooltip, setShowTooltip] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchHealth = async () => {
@@ -55,29 +57,22 @@ export function HealthStatus() {
     return () => clearInterval(interval);
   }, []);
 
-  if (loading) {
-    return (
-      <div className="bg-white border border-[#eeeeee] rounded-lg p-4">
-        <div className="flex items-center gap-2">
-          <div className="w-2 h-2 bg-[#757575] rounded-full animate-pulse"></div>
-          <span className="text-sm text-[#757575]">Checking system health...</span>
-        </div>
-      </div>
-    );
-  }
+  // Close expanded view when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsExpanded(false);
+      }
+    };
 
-  if (error || !health) {
-    return (
-      <div className="bg-white border border-[#f44336] rounded-lg p-4">
-        <div className="flex items-center gap-2">
-          <div className="w-2 h-2 bg-[#f44336] rounded-full"></div>
-          <span className="text-sm text-[#f44336]">
-            {error || 'Unable to fetch health status'}
-          </span>
-        </div>
-      </div>
-    );
-  }
+    if (isExpanded) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isExpanded]);
+
+  const status = error || !health ? 'unhealthy' : health.status;
+  const statusText = loading ? 'Checking...' : error || !health ? 'System Error' : `System ${health.status.charAt(0).toUpperCase() + health.status.slice(1)}`;
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -111,62 +106,93 @@ export function HealthStatus() {
 
   return (
     <div 
-      className="bg-white border border-[#eeeeee] rounded-lg shadow-sm transition-all duration-300 ease-in-out cursor-pointer"
-      onMouseEnter={() => setIsExpanded(true)}
-      onMouseLeave={() => setIsExpanded(false)}
+      ref={containerRef}
+      className="relative inline-flex items-center"
+      onMouseEnter={() => setShowTooltip(true)}
+      onMouseLeave={() => setShowTooltip(false)}
+      onClick={() => setIsExpanded(!isExpanded)}
     >
-      {/* Collapsed View - Always Visible */}
-      <div className="flex items-center justify-between p-4">
-        <div className="flex items-center gap-3">
-          <h3 className="text-base font-medium text-[#212121]">System Health</h3>
-          <div className="flex items-center gap-2">
-            <div
-              className="w-2 h-2 rounded-full animate-pulse"
-              style={{ backgroundColor: getStatusColor(health.status) }}
-            ></div>
-            <span
-              className="text-sm font-medium capitalize"
-              style={{ color: getStatusColor(health.status) }}
-            >
-              {health.status}
-            </span>
-          </div>
-        </div>
-        <svg 
-          className={`w-5 h-5 text-[#757575] transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}
-          fill="none" 
-          stroke="currentColor" 
-          viewBox="0 0 24 24"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
-      </div>
-
-      {/* Expanded View - Show on Hover */}
-      <div 
-        className="overflow-hidden transition-all duration-300 ease-in-out"
-        style={{
-          maxHeight: isExpanded ? '500px' : '0',
-          opacity: isExpanded ? 1 : 0,
+      {/* Status Dot */}
+      <div
+        className="w-2 h-2 rounded-full cursor-pointer transition-all duration-200 hover:scale-125"
+        style={{ 
+          backgroundColor: loading ? '#757575' : getStatusColor(status),
+          animation: loading ? 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' : 'none'
         }}
-      >
-        <div className="px-4 pb-4 space-y-3 border-t border-[#f5f5f5] pt-3">
+        title={statusText}
+      />
+
+      {/* Tooltip on Hover */}
+      {showTooltip && !isExpanded && (
+        <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 px-2 py-1 bg-[#212121] text-white text-xs rounded whitespace-nowrap z-50 pointer-events-none">
+          {statusText}
+          <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-[#212121]"></div>
+        </div>
+      )}
+
+      {/* Expanded View - Show on Click */}
+      {isExpanded && (
+        <div className="absolute right-0 top-full mt-2 w-80 bg-white border border-[#eeeeee] rounded-lg shadow-lg z-50">
+          <div className="p-3 space-y-2">
+            {/* Header */}
+            <div className="flex items-center justify-between pb-2 border-b border-[#f5f5f5]">
+              <h3 className="text-sm font-medium text-[#212121]">System Health</h3>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsExpanded(false);
+                }}
+                className="text-[#757575] hover:text-[#212121] transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {loading && (
+              <div className="py-4 text-center text-sm text-[#757575]">
+                Checking system health...
+              </div>
+            )}
+
+            {error && !health && (
+              <div className="py-4 text-center text-sm text-[#f44336]">
+                {error}
+              </div>
+            )}
+
+            {health && (
+              <>
+                {/* Status Summary */}
+                <div className="flex items-center gap-2 pb-2 border-b border-[#f5f5f5]">
+                  <div
+                    className="w-2 h-2 rounded-full"
+                    style={{ backgroundColor: getStatusColor(health.status) }}
+                  ></div>
+                  <span
+                    className="text-sm font-medium capitalize"
+                    style={{ color: getStatusColor(health.status) }}
+                  >
+                    {health.status}
+                  </span>
+                </div>
           {/* Database */}
-          <div className="flex items-center justify-between py-2 border-b border-[#f5f5f5]">
-            <div className="flex items-center gap-2">
-              <span style={{ color: getStatusColor(health.checks.database.status) }}>
+          <div className="flex items-center justify-between py-1.5 border-b border-[#f5f5f5]">
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs" style={{ color: getStatusColor(health.checks.database.status) }}>
                 {getStatusIcon(health.checks.database.status)}
               </span>
-              <span className="text-sm text-[#212121]">Database</span>
+              <span className="text-xs text-[#212121]">Database</span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               {health.checks.database.latency !== undefined && (
-                <span className="text-xs text-[#757575]">
+                <span className="text-[10px] text-[#757575]">
                   {health.checks.database.latency}ms
                 </span>
               )}
               <span
-                className="text-xs capitalize"
+                className="text-[10px] capitalize"
                 style={{ color: getStatusColor(health.checks.database.status) }}
               >
                 {health.checks.database.status}
@@ -175,15 +201,15 @@ export function HealthStatus() {
           </div>
 
           {/* Salesforce */}
-          <div className="flex items-center justify-between py-2 border-b border-[#f5f5f5]">
-            <div className="flex items-center gap-2">
-              <span style={{ color: getStatusColor(health.checks.salesforce.status) }}>
+          <div className="flex items-center justify-between py-1.5 border-b border-[#f5f5f5]">
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs" style={{ color: getStatusColor(health.checks.salesforce.status) }}>
                 {getStatusIcon(health.checks.salesforce.status)}
               </span>
-              <span className="text-sm text-[#212121]">Salesforce API</span>
+              <span className="text-xs text-[#212121]">Salesforce</span>
             </div>
             <span
-              className="text-xs capitalize"
+              className="text-[10px] capitalize"
               style={{ color: getStatusColor(health.checks.salesforce.status) }}
             >
               {health.checks.salesforce.configured ? 'Configured' : 'Not Configured'}
@@ -191,15 +217,15 @@ export function HealthStatus() {
           </div>
 
           {/* Sierra */}
-          <div className="flex items-center justify-between py-2 border-b border-[#f5f5f5]">
-            <div className="flex items-center gap-2">
-              <span style={{ color: getStatusColor(health.checks.sierra.status) }}>
+          <div className="flex items-center justify-between py-1.5 border-b border-[#f5f5f5]">
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs" style={{ color: getStatusColor(health.checks.sierra.status) }}>
                 {getStatusIcon(health.checks.sierra.status)}
               </span>
-              <span className="text-sm text-[#212121]">Sierra API</span>
+              <span className="text-xs text-[#212121]">Sierra</span>
             </div>
             <span
-              className="text-xs capitalize"
+              className="text-[10px] capitalize"
               style={{ color: getStatusColor(health.checks.sierra.status) }}
             >
               {health.checks.sierra.configured ? 'Configured' : 'Not Configured'}
@@ -207,8 +233,8 @@ export function HealthStatus() {
           </div>
 
           {/* System Info */}
-          <div className="pt-2 mt-2 border-t border-[#eeeeee]">
-            <div className="grid grid-cols-2 gap-2 text-xs">
+          <div className="pt-1.5 mt-1.5 border-t border-[#eeeeee]">
+            <div className="grid grid-cols-2 gap-1.5 text-[10px]">
               <div>
                 <span className="text-[#757575]">Uptime:</span>{' '}
                 <span className="text-[#212121]">
@@ -222,7 +248,7 @@ export function HealthStatus() {
                 </span>
               </div>
               <div>
-                <span className="text-[#757575]">Environment:</span>{' '}
+                <span className="text-[#757575]">Env:</span>{' '}
                 <span className="text-[#212121] capitalize">{health.environment}</span>
               </div>
               <div>
@@ -232,11 +258,14 @@ export function HealthStatus() {
             </div>
           </div>
 
-          <div className="mt-3 text-xs text-[#9e9e9e] text-right">
-            Last checked: {new Date(health.timestamp).toLocaleTimeString()}
+                <div className="pt-2 mt-2 border-t border-[#eeeeee] text-[10px] text-[#9e9e9e] text-right">
+                  {new Date(health.timestamp).toLocaleTimeString()}
+                </div>
+              </>
+            )}
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
