@@ -14,6 +14,7 @@ import {
 export interface ConversationIdentifierResult {
   conversationIdentifier: string;
   messagingSessionId: string | null;
+  messagingSessionName: string | null;
 }
 
 /**
@@ -51,8 +52,8 @@ export async function getConversationIdentifier(
 
   const caseId = caseResult.records[0].Id;
 
-  // Step 2: Get ConversationId and MessagingSessionId (Id)
-  const messagingQuery = `SELECT Id, ConversationId FROM MessagingSession WHERE CaseId='${caseId}' LIMIT 1`;
+  // Step 2: Get ConversationId, MessagingSessionId (Id), and Name
+  const messagingQuery = `SELECT Id, ConversationId, Name FROM MessagingSession WHERE CaseId='${caseId}' LIMIT 1`;
   const messagingQueryUrl = `${baseQueryUrl}?q=${encodeURIComponent(messagingQuery)}`;
   response = await session.makeRequest('GET', messagingQueryUrl, {
     headers: {},
@@ -72,6 +73,7 @@ export async function getConversationIdentifier(
 
   const conversationId = messagingResult.records[0].ConversationId;
   const messagingSessionId = messagingResult.records[0].Id; // This is the MessagingSessionId
+  const messagingSessionName = (messagingResult.records[0] as any).Name || null; // Name field
 
   // Step 3: Get ConversationIdentifier
   const conversationQuery = `SELECT ConversationIdentifier FROM Conversation WHERE Id='${conversationId}' LIMIT 1`;
@@ -98,6 +100,7 @@ export async function getConversationIdentifier(
   return {
     conversationIdentifier,
     messagingSessionId,
+    messagingSessionName,
   };
 }
 

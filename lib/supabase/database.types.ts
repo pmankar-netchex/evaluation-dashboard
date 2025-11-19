@@ -24,6 +24,7 @@ export interface Database {
           test_batch_id: string | null
           metadata: Json | null
           messaging_session_id: string | null
+          messaging_session_name: string | null
         }
         Insert: {
           id?: string
@@ -36,6 +37,7 @@ export interface Database {
           test_batch_id?: string | null
           metadata?: Json | null
           messaging_session_id?: string | null
+          messaging_session_name?: string | null
         }
         Update: {
           id?: string
@@ -48,6 +50,7 @@ export interface Database {
           test_batch_id?: string | null
           metadata?: Json | null
           messaging_session_id?: string | null
+          messaging_session_name?: string | null
         }
       }
       evaluations: {
@@ -65,6 +68,7 @@ export interface Database {
           time_spent_seconds: number | null
           created_at: string
           messaging_session_id: string | null
+          messaging_session_name: string | null
         }
         Insert: {
           id?: string
@@ -80,6 +84,7 @@ export interface Database {
           time_spent_seconds?: number | null
           created_at?: string
           messaging_session_id?: string | null
+          messaging_session_name?: string | null
         }
         Update: {
           id?: string
@@ -95,6 +100,7 @@ export interface Database {
           time_spent_seconds?: number | null
           created_at?: string
           messaging_session_id?: string | null
+          messaging_session_name?: string | null
         }
       }
       chat_sessions: {
@@ -107,6 +113,7 @@ export interface Database {
           sierra_conversation_state: string | null
           created_at: string
           messaging_session_id: string | null
+          messaging_session_name: string | null
         }
         Insert: {
           id?: string
@@ -117,6 +124,7 @@ export interface Database {
           sierra_conversation_state?: string | null
           created_at?: string
           messaging_session_id?: string | null
+          messaging_session_name?: string | null
         }
         Update: {
           id?: string
@@ -127,6 +135,7 @@ export interface Database {
           sierra_conversation_state?: string | null
           created_at?: string
           messaging_session_id?: string | null
+          messaging_session_name?: string | null
         }
       }
       chat_messages: {

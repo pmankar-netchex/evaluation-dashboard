@@ -8,6 +8,7 @@ interface CaseLoaderProps {
   loading?: boolean;
   currentCaseNumber?: string;
   currentMessagingSessionId?: string;
+  currentMessagingSessionName?: string;
 }
 
 export function CaseLoader({
@@ -15,6 +16,7 @@ export function CaseLoader({
   loading = false,
   currentCaseNumber,
   currentMessagingSessionId,
+  currentMessagingSessionName,
 }: CaseLoaderProps) {
   const [inputValue, setInputValue] = useState('');
   const [inputType, setInputType] = useState<'case' | 'messagingSession'>('case');
@@ -104,6 +106,13 @@ export function CaseLoader({
                 {currentCaseNumber && <br className="mt-1" />}
                 <span className="font-medium text-[#212121]">MessagingSessionId:</span>{' '}
                 <span className="font-mono text-[#2196f3]">{currentMessagingSessionId}</span>
+              </>
+            )}
+            {currentMessagingSessionName && (
+              <>
+                {(currentCaseNumber || currentMessagingSessionId) && <br className="mt-1" />}
+                <span className="font-medium text-[#212121]">MessagingSessionName:</span>{' '}
+                <span className="font-mono text-[#2196f3]">{currentMessagingSessionName}</span>
               </>
             )}
           </div>

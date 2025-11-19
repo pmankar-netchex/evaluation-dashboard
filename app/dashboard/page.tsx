@@ -571,6 +571,7 @@ export default function DashboardPage() {
         loading={loading}
         currentCaseNumber={currentTranscript?.case_number}
         currentMessagingSessionId={currentTranscript?.messaging_session_id || undefined}
+        currentMessagingSessionName={currentTranscript?.messaging_session_name || undefined}
       />
 
       {error && (

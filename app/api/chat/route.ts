@@ -16,11 +16,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Parse request body for optional messaging_session_id
+    // Parse request body for optional messaging_session_id and messaging_session_name
     let messagingSessionId: string | undefined;
+    let messagingSessionName: string | undefined;
     try {
       const body = await request.json();
       messagingSessionId = body.messaging_session_id;
+      messagingSessionName = body.messaging_session_name;
     } catch {
       // Body is optional, continue without it
     }
@@ -33,6 +35,7 @@ export async function POST(request: NextRequest) {
         user_id: user.id,
         session_status: 'active',
         messaging_session_id: messagingSessionId || null,
+        messaging_session_name: messagingSessionName || null,
       })
       .select()
       .single();

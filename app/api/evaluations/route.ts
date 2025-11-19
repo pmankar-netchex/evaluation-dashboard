@@ -30,23 +30,26 @@ export async function POST(request: NextRequest) {
 
     // Get messaging_session_id from request, or fetch from related chat_session/transcript
     let messagingSessionId: string | null = validatedData.messaging_session_id || null;
+    let messagingSessionName: string | null = validatedData.messaging_session_name || null;
     
-    if (!messagingSessionId) {
-      // Try to get messaging_session_id from related chat_session or transcript
+    if (!messagingSessionId || !messagingSessionName) {
+      // Try to get messaging_session_id and messaging_session_name from related chat_session or transcript
       if (validatedData.chat_session_id) {
         const { data: chatSession } = await (supabase
           .from('chat_sessions') as any)
-          .select('messaging_session_id')
+          .select('messaging_session_id, messaging_session_name')
           .eq('id', validatedData.chat_session_id)
           .single();
-        messagingSessionId = chatSession?.messaging_session_id || null;
+        messagingSessionId = messagingSessionId || chatSession?.messaging_session_id || null;
+        messagingSessionName = messagingSessionName || chatSession?.messaging_session_name || null;
       } else if (validatedData.transcript_id) {
         const { data: transcript } = await (supabase
           .from('transcripts') as any)
-          .select('messaging_session_id')
+          .select('messaging_session_id, messaging_session_name')
           .eq('id', validatedData.transcript_id)
           .single();
-        messagingSessionId = transcript?.messaging_session_id || null;
+        messagingSessionId = messagingSessionId || transcript?.messaging_session_id || null;
+        messagingSessionName = messagingSessionName || transcript?.messaging_session_name || null;
       }
     }
 
@@ -62,6 +65,7 @@ export async function POST(request: NextRequest) {
       notes: validatedData.notes || null,
       time_spent_seconds: validatedData.time_spent_seconds || null,
       messaging_session_id: messagingSessionId,
+      messaging_session_name: messagingSessionName,
     };
 
     // Type assertion needed due to Supabase type inference limitations

@@ -75,7 +75,7 @@ export async function GET(
       );
     }
 
-    const { conversationIdentifier, messagingSessionId } = conversationResult;
+    const { conversationIdentifier, messagingSessionId, messagingSessionName } = conversationResult;
 
     const agentforceEntries = await getConversationEntries(
       salesforceSession,
@@ -93,6 +93,7 @@ export async function GET(
         sierra_transcript: [], // Empty array - will be populated when Sierra replay is triggered
         sierra_version: process.env.SIERRA_VERSION || 'v2.1.0',
         messaging_session_id: messagingSessionId || null,
+        messaging_session_name: messagingSessionName || null,
       })
       .select()
       .single();

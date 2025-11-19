@@ -21,6 +21,7 @@ export interface SalesforceMessagingSession {
   Id: string;
   ConversationId: string;
   CaseId: string;
+  Name?: string;
 }
 
 export interface SalesforceConversation {

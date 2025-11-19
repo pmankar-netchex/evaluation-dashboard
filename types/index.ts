@@ -29,6 +29,7 @@ export interface Transcript {
   test_batch_id?: string;
   metadata?: Record<string, any>;
   messaging_session_id?: string;
+  messaging_session_name?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -83,6 +84,7 @@ export interface ChatSession {
   ended_at?: string;
   session_status: 'active' | 'ended';
   messaging_session_id?: string;
+  messaging_session_name?: string;
   created_at: string;
 }
 
