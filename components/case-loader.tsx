@@ -33,7 +33,7 @@ export function CaseLoader({
     <div className="bg-white border border-[#eeeeee] rounded-lg p-6 shadow-sm">
       <div className="mb-4">
         <h3 className="text-base font-medium leading-6 text-[#212121] mb-1">Load Transcript</h3>
-        <p className="text-xs font-normal leading-4 text-[#757575]">Enter a Case Number, MessagingSessionId, or MessagingSessionName to fetch and compare transcripts</p>
+        <p className="text-xs font-normal leading-4 text-[#757575]">Enter a Case Number, Messaging Session Id, or Messaging Session Name to fetch and compare transcripts</p>
       </div>
       <div className="flex flex-col gap-4">
         {/* Input Type Selector */}
@@ -60,7 +60,7 @@ export function CaseLoader({
               disabled={loading}
               className="w-4 h-4 text-[#2196f3] focus:ring-[#2196f3]"
             />
-            <span className="text-sm font-medium text-[#212121]">MessagingSessionId</span>
+            <span className="text-sm font-medium text-[#212121]">Messaging Session ID</span>
           </label>
           <label className="flex items-center gap-2 cursor-pointer">
             <input
@@ -72,7 +72,7 @@ export function CaseLoader({
               disabled={loading}
               className="w-4 h-4 text-[#2196f3] focus:ring-[#2196f3]"
             />
-            <span className="text-sm font-medium text-[#212121]">MessagingSessionName</span>
+            <span className="text-sm font-medium text-[#212121]">Messaging Session Name</span>
           </label>
         </div>
 
